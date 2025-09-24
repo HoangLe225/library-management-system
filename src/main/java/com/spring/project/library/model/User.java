@@ -1,15 +1,18 @@
 package com.spring.project.library.model;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.spring.project.library.dto.UserRole;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
+import java.util.Set;
 
 @Entity
 @Table(name = "users")
 @Data
-@Getter
-@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 public class User {
@@ -30,7 +33,13 @@ public class User {
     @Column(name = "enabled")
     private boolean enabled;
     @Column(name = "created_at")
+    @CreationTimestamp
     private LocalDateTime createdAt;
     @Column(name = "updated_at")
+    @UpdateTimestamp
     private LocalDateTime updatedAt;
+//    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+//    @EqualsAndHashCode.Exclude
+//    @ToString.Exclude
+//    private Set<UserRole> userRoles;
 }

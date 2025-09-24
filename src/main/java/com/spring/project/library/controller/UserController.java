@@ -1,5 +1,6 @@
 package com.spring.project.library.controller;
 
+import com.spring.project.library.model.Role;
 import com.spring.project.library.model.User;
 import com.spring.project.library.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -61,5 +62,14 @@ public class UserController {
 
         userService.deleteUser(id);
         return ResponseEntity.noContent().build(); // HTTP 204
+    }
+    @GetMapping("/{id}/roles")
+    public ResponseEntity<List<Role>> getRolesForUser(@PathVariable Long id) {
+        Optional<User> userOptional = userService.getUserById(id);
+        if (userOptional.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        List<Role> roles = userService.getRolesForUser(id);
+        return ResponseEntity.ok(roles);
     }
 }
