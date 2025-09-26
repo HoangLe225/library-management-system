@@ -1,4 +1,4 @@
-package com.spring.project.library.dto;
+package com.spring.project.library.model;
 
 import com.spring.project.library.model.Role;
 import com.spring.project.library.model.User;

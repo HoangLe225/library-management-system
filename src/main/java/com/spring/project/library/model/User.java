@@ -1,7 +1,5 @@
 package com.spring.project.library.model;
 
-import com.fasterxml.jackson.annotation.JsonManagedReference;
-import com.spring.project.library.dto.UserRole;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -38,8 +36,8 @@ public class User {
     @Column(name = "updated_at")
     @UpdateTimestamp
     private LocalDateTime updatedAt;
-//    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
-//    @EqualsAndHashCode.Exclude
-//    @ToString.Exclude
-//    private Set<UserRole> userRoles;
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    private Set<UserRole> userRoles;
 }
