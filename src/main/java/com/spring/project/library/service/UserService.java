@@ -34,16 +34,9 @@ public class UserService {
         this.roleRepository = roleRepository;
         this.userRoleRepository = userRoleRepository;
     }
-    public List<User> getAllUsers() {
-        return userRepository.findAll();
-    }
 
     public Optional<User> getUserById(Long id) {
         return userRepository.findById(id);
-    }
-
-    public User saveUser(User user) {
-        return userRepository.save(user);
     }
 
     @Transactional(readOnly = true)
@@ -52,14 +45,20 @@ public class UserService {
                 .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
     }
 
+    public List<Role> getRolesForUser(Long userId) {
+        List<UserRole> userRoles = userRoleRepository.findByUserId(userId);
+        return userRoles.stream()
+                .map(UserRole::getRole)
+                .collect(Collectors.toList());
+    }
+
     @Transactional
     public void deleteUser(Long userId) {
         if (!userRepository.existsById(userId)) {
             throw new ResourceNotFoundException("User không tồn tại với ID: " + userId);
         }
 
-        // 🎯 QUAN TRỌNG: Xóa các bản ghi liên quan trong bảng users_roles trước
-        // Bạn cần thêm phương thức này vào UserRoleRepository
+        // Xóa các bản ghi liên quan trong bảng users_roles trước
         userRoleRepository.deleteByUserId(userId);
 
         // Xóa User chính
@@ -67,41 +66,13 @@ public class UserService {
     }
 
     @Transactional
-    public void updateUser(Long userId, UserUpdateRequestDto updateDTO) {
+    public UserInfosDto updateUser(Long userId, UserUpdateRequestDto updateDTO) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User không tồn tại với ID: " + userId));
 
-        // 1. KIỂM TRA TÍNH DUY NHẤT VÀ CẬP NHẬT EMAIL
-        final String currentEmail = user.getEmail();
-        final String newEmail = updateDTO.getEmail();
+        User updatedUser = updateBaseUserInfo(user, updateDTO);
 
-        // Nếu email được cung cấp và khác giá trị cũ
-        if (newEmail != null && !newEmail.equals(currentEmail)) {
-            // Kiểm tra trùng lặp (loại trừ user hiện tại)
-            if (userRepository.findByEmailAndIdNot(newEmail, userId).isPresent()) {
-                throw new UserAlreadyExistsException("Email '" + newEmail + "' đã được sử dụng bởi người dùng khác.");
-            }
-            user.setEmail(newEmail);
-        }
-
-        // 2. CẬP NHẬT PASSWORD
-        if (updateDTO.getPassword() != null && !updateDTO.getPassword().isEmpty()) {
-            // Nếu password được cung cấp, cập nhật.
-            // Tùy thuộc vào cấu hình PasswordEncoder (ví dụ: BCrypt, NoOp), bạn sẽ mã hóa tại đây:
-            // user.setPassword(passwordEncoder.encode(updateDTO.getPassword()));
-
-            // Vì bạn đang dùng NoOp (giả định), ta dùng plain text:
-            user.setPassword(updateDTO.getPassword());
-        }
-
-        // Cập nhật thông tin User chính
-        user.setFullName(updateDTO.getFullName() != null ? updateDTO.getFullName() : user.getFullName());
-        user.setPhone(updateDTO.getPhone() != null ? updateDTO.getPhone() : user.getPhone());
-
-        // Lưu User Entity đã cập nhật
-        userRepository.save(user);
-
-        // 🎯 CẬP NHẬT ROLE (Chỉ chạy nếu có dữ liệu role được gửi lên)
+        // CẬP NHẬT ROLE (Chỉ chạy nếu có dữ liệu role được gửi lên)
         if (updateDTO.getRoles() != null) {
 
             // Xóa tất cả các vai trò cũ khỏi bảng users_roles
@@ -121,13 +92,50 @@ public class UserService {
                 userRoleRepository.save(userRole);
             }
         }
+
+        return new UserInfosDto(updatedUser, updateDTO.getRoles());
     }
 
-    public List<Role> getRolesForUser(Long userId) {
-        List<UserRole> userRoles = userRoleRepository.findByUserId(userId);
-        return userRoles.stream()
-                .map(UserRole::getRole)
-                .collect(Collectors.toList());
+    @Transactional
+    public User updateBasicUserInfo(String username, UserUpdateRequestDto updateDTO) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User không tồn tại với username: " + username));
+
+        return updateBaseUserInfo(user, updateDTO);
+    }
+
+    private User updateBaseUserInfo(User user, UserUpdateRequestDto updateDTO) {
+        Long userId = user.getId();
+
+        // 1. KIỂM TRA TÍNH DUY NHẤT VÀ CẬP NHẬT EMAIL
+        final String currentEmail = user.getEmail();
+        final String newEmail = updateDTO.getEmail();
+
+        // Nếu email được cung cấp và khác giá trị cũ
+        if (newEmail != null && !newEmail.equals(currentEmail)) {
+            // Kiểm tra trùng lặp (loại trừ user hiện tại)
+            if (userRepository.findByEmailAndIdNot(newEmail, userId).isPresent()) {
+                throw new UserAlreadyExistsException("Email '" + newEmail + "' is already taken");
+            }
+            user.setEmail(newEmail);
+        }
+
+        // 2. CẬP NHẬT PASSWORD
+        // Nếu password được cung cấp, cập nhật
+        if (updateDTO.getPassword() != null && !updateDTO.getPassword().isEmpty()) {
+            user.setPassword(updateDTO.getPassword());
+        }
+
+        // 3. CẬP NHẬT FULLNAME & PHONE
+        if (updateDTO.getFullName() != null) {
+            user.setFullName(updateDTO.getFullName());
+        }
+        if (updateDTO.getPhone() != null) {
+            user.setPhone(updateDTO.getPhone());
+        }
+
+        // Lưu User Entity đã cập nhật
+        return userRepository.save(user);
     }
 
     public User registerNewUser(UserRegistrationDto registrationDto) {
@@ -154,20 +162,25 @@ public class UserService {
 
         // 3. Xử lý và lưu Role vào bảng users_roles
 
-        // Chuẩn hóa tên Role (ví dụ: 'USER' -> 'ROLE_USER')
-        final String roleName = "ROLE_" + registrationDto.getRole().toUpperCase();
+        List<String> prefixedRoleNames = registrationDto.getPrefixedRoles();
 
-        // 3a. Tìm Role Entity trong DB
-        Role role = roleRepository.findByName(roleName)
-                .orElseThrow(() -> new IllegalArgumentException("Role '" + roleName + "' không tồn tại."));
+        if (prefixedRoleNames.isEmpty()) {
+            throw new IllegalArgumentException("Người dùng phải có ít nhất một Role.");
+        }
 
-        // 3b. Tạo Entity bảng nối UserRole
-        UserRole userRole = new UserRole();
-        userRole.setUser(savedUser);
-        userRole.setRole(role);
+        for (String roleName : prefixedRoleNames) {
+            // 3a. Tìm Role Entity trong DB
+            Role role = roleRepository.findByName(roleName)
+                    .orElseThrow(() -> new IllegalArgumentException("Role '" + roleName + "' không tồn tại."));
 
-        // 3c. Lưu Entity UserRole vào bảng users_roles
-        userRoleRepository.save(userRole);
+            // 3b. Tạo Entity bảng nối UserRole
+            UserRole userRole = new UserRole();
+            userRole.setUser(savedUser);
+            userRole.setRole(role);
+
+            // 3c. Lưu Entity UserRole vào bảng users_roles
+            userRoleRepository.save(userRole);
+        }
 
         return savedUser;
     }

@@ -1,17 +1,10 @@
 package com.spring.project.library.controller;
 
-import com.spring.project.library.dto.StatusResponse;
 import com.spring.project.library.dto.UserInfosDto;
-import com.spring.project.library.dto.UserRegistrationDto;
 import com.spring.project.library.dto.UserUpdateRequestDto;
-import com.spring.project.library.exception.UserAlreadyExistsException;
 import com.spring.project.library.model.Role;
 import com.spring.project.library.model.User;
-import com.spring.project.library.model.UserRole;
 import com.spring.project.library.service.UserService;
-import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -30,11 +23,11 @@ public class UserController {
         this.userService = userService;
     }
 
-    private Long getCurrentUserId(Authentication authentication) {
-        String username = authentication.getName();
-        User currentUser = userService.findByUsername(username);
-        return currentUser.getId();
-    }
+//    private Long getCurrentUserId(Authentication authentication) {
+//        String username = authentication.getName();
+//        User currentUser = userService.findByUsername(username);
+//        return currentUser.getId();
+//    }
 
     // GET all users
 //    @GetMapping
@@ -43,12 +36,6 @@ public class UserController {
 //        return ResponseEntity.ok(users); // HTTP 200
 //    }
 
-    @GetMapping
-    public ResponseEntity<List<UserInfosDto>> getAllUsersWithRoles() {
-        List<UserInfosDto> usersWithRoles = userService.getAllUsersWithRoles();
-        return ResponseEntity.ok(usersWithRoles); // HTTP 200 OK
-    }
-
     // GET user by ID
 //    @GetMapping("/{id}")
 //    public ResponseEntity<User> getUserById(@PathVariable Long id) {
@@ -56,12 +43,6 @@ public class UserController {
 //                .map(ResponseEntity::ok) // HTTP 200
 //                .orElseGet(() -> ResponseEntity.notFound().build()); // HTTP 404
 //    }
-    @GetMapping("/{id}")
-    public ResponseEntity<UserInfosDto> getUserByIdWithRoles(@PathVariable Long id) {
-        // Giả sử userService có phương thức getUserByIdWithRoles
-        UserInfosDto userDTO = userService.getUserByIdWithRoles(id);
-        return ResponseEntity.ok(userDTO);
-    }
 
     // POST create user
 //    @PostMapping
@@ -70,29 +51,32 @@ public class UserController {
 //        return ResponseEntity.status(HttpStatus.CREATED).body(createdUser); // HTTP 201
 //    }
 
+    @GetMapping
+    public ResponseEntity<List<UserInfosDto>> getAllUsersWithRoles() {
+        List<UserInfosDto> usersWithRoles = userService.getAllUsersWithRoles();
+        return ResponseEntity.ok(usersWithRoles); // HTTP 200 OK
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<UserInfosDto> getUserByIdWithRoles(@PathVariable Long id) {
+        // Giả sử userService có phương thức getUserByIdWithRoles
+        UserInfosDto userDTO = userService.getUserByIdWithRoles(id);
+        return ResponseEntity.ok(userDTO);
+    }
+
     // PUT update user
     @PutMapping("/{id}")
     public ResponseEntity<?> updateUser(@PathVariable Long id,
                                         @RequestBody UserUpdateRequestDto updateDTO) {
-        try {
-            // Logic cập nhật sẽ nằm trong Service
-            userService.updateUser(id, updateDTO);
-            return ResponseEntity.ok(new StatusResponse("SUCCESS", "Cập nhật người dùng thành công."));
-        } catch (Exception e) {
-            // Xử lý lỗi (ví dụ: User không tồn tại)
-            return ResponseEntity.badRequest().body(new StatusResponse("ERROR", e.getMessage()));
-        }
+        UserInfosDto userInfos = userService.updateUser(id, updateDTO);
+        return ResponseEntity.ok(userInfos);
     }
 
     // DELETE user
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteUser(@PathVariable Long id) {
-        try {
-            userService.deleteUser(id);
-            return ResponseEntity.ok(new StatusResponse("SUCCESS", "Xóa người dùng thành công."));
-        } catch (Exception e) {
-            return ResponseEntity.notFound().build();
-        }
+        userService.deleteUser(id);
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/{id}/roles")
@@ -109,7 +93,7 @@ public class UserController {
      * Endpoint này được gọi ngay sau khi đăng nhập thành công (Basic Auth)
      * để lấy thông tin chi tiết của người dùng đã xác thực.
      * * @param authentication Đối tượng chứa thông tin người dùng từ Security Context.
-     * @return LoginResponseDto chứa ID, username và roles.
+     * @return UserInfosDto chứa ID, username và roles.
      */
     @GetMapping("/user-details")
     public ResponseEntity<UserInfosDto> getUserDetails(Authentication authentication) {
@@ -132,5 +116,15 @@ public class UserController {
         UserInfosDto responseDto = new UserInfosDto(user, roles);
 
         return ResponseEntity.ok(responseDto);
+    }
+
+    @PutMapping("/user-details")
+    public ResponseEntity<?> updateUserDetails(Authentication authentication, @RequestBody UserUpdateRequestDto updateDTO) {
+        String username = authentication.getName();
+
+        // Phương thức này BỎ QUA field 'roles' trong DTO.
+        User updatedUser = userService.updateBasicUserInfo(username, updateDTO);
+
+        return ResponseEntity.ok(updatedUser);
     }
 }

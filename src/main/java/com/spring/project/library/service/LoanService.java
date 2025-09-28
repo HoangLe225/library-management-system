@@ -3,14 +3,12 @@ package com.spring.project.library.service;
 import com.spring.project.library.dto.LoanDetailsDto;
 import com.spring.project.library.dto.LoanRequestDto;
 import com.spring.project.library.exception.ResourceNotFoundException;
-import com.spring.project.library.exception.LibraryOperationException;
 import com.spring.project.library.model.Book;
 import com.spring.project.library.model.Loan;
 import com.spring.project.library.model.User;
 import com.spring.project.library.repository.BookRepository;
 import com.spring.project.library.repository.LoanRepository;
 import com.spring.project.library.repository.UserRepository;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -43,7 +41,7 @@ public class LoanService {
 
         // 2. Kiểm tra nghiệp vụ
         if (book.getAvailableCopies() <= 0) {
-            throw new LibraryOperationException("Sách '" + book.getTitle() + "' đã hết bản sao khả dụng.");
+            throw new ResourceNotFoundException("Sách '" + book.getTitle() + "' đã hết bản sao khả dụng.");
         }
 
         // Bạn có thể thêm các luật khác ở đây: 
@@ -75,7 +73,7 @@ public class LoanService {
                 .orElseThrow(() -> new ResourceNotFoundException("Loan ID không tồn tại: " + loanId));
 
         if (!"LOANED".equals(loan.getStatus())) {
-            throw new LibraryOperationException("Loan ID " + loanId + " không ở trạng thái 'LOANED'.");
+            throw new ResourceNotFoundException("Loan ID " + loanId + " không ở trạng thái 'LOANED'.");
         }
 
         // 1. Cập nhật trạng thái Loan

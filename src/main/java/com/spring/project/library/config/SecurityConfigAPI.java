@@ -5,6 +5,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -21,6 +22,7 @@ import java.util.Collections;
 
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity // Annotation này kích hoạt @PreAuthorize
 public class SecurityConfigAPI {
 
     // Tạo PasswordEncoder để mã hóa mật khẩu
@@ -69,10 +71,10 @@ public class SecurityConfigAPI {
 
                 // Cấu hình phân quyền cho các request
                 .authorizeHttpRequests(authorize -> authorize
-                        // Cho phép tất cả các request tới /login và /api/public (ví dụ)
                         .requestMatchers("/login", "/logout", "/register", "/api/public/**").permitAll()
-                        // Yêu cầu quyền ADMIN cho các request tới /api/admin
-                        .requestMatchers("/users/**", "/loans/**").hasAnyRole("MEMBER","ADMIN")
+                        .requestMatchers("/users/user-details").authenticated()
+                        .requestMatchers("/users/**").hasRole("ADMIN")
+                        .requestMatchers("/loans/**").hasAnyRole("MEMBER","ADMIN")
                         // Yêu cầu xác thực cho tất cả các request còn lại
                         .anyRequest().authenticated()
                 )

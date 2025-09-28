@@ -1,9 +1,10 @@
 package com.spring.project.library.dto;
 
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.*;
 import lombok.Data;
+
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Data
 public class UserRegistrationDto {
@@ -21,6 +22,22 @@ public class UserRegistrationDto {
     @Size(min = 6, message = "Password must be at least 6 characters long")
     private String password;
 
+    @Size(min = 10, message = "Phone number must be at least 10 characters long")
     private String phone;
-    private String role;
+
+    @NotEmpty(message = "Roles list cannot be empty")
+    private List<String> roles;
+
+    /**
+     * Helper method to convert raw roles (e.g., "ADMIN") to prefixed roles (e.g., "ROLE_ADMIN").
+     * @return List of roles with ROLE_ prefix.
+     */
+    public List<String> getPrefixedRoles() {
+        if (this.roles == null) {
+            return List.of();
+        }
+        return this.roles.stream()
+                .map(role -> "ROLE_" + role.toUpperCase())
+                .collect(Collectors.toList());
+    }
 }

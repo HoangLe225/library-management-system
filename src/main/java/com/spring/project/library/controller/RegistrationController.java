@@ -1,8 +1,6 @@
 package com.spring.project.library.controller;
 
-import com.spring.project.library.dto.StatusResponse;
 import com.spring.project.library.dto.UserRegistrationDto;
-import com.spring.project.library.exception.UserAlreadyExistsException;
 import com.spring.project.library.model.User;
 import com.spring.project.library.service.UserService;
 import jakarta.validation.Valid;
@@ -22,16 +20,7 @@ public class RegistrationController {
 
     @PostMapping("/register")
     public ResponseEntity<?> createUser(@Valid @RequestBody UserRegistrationDto registrationDto) {
-        try {
-            User createdUser = userService.registerNewUser(registrationDto);
-//            return ResponseEntity.status(HttpStatus.CREATED).body(createdUser);
-            return ResponseEntity.status(HttpStatus.CREATED).body(new StatusResponse("SUCCESS", "Đăng ký thành công."));
-        } catch (UserAlreadyExistsException e) {
-            // Trả về 409 Conflict hoặc 400 Bad Request nếu username đã tồn tại
-            return ResponseEntity.status(HttpStatus.CONFLICT).body(new StatusResponse("ERROR", e.getMessage()));
-        } catch (Exception e) {
-            // Xử lý các lỗi khác
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new StatusResponse("ERROR", "Lỗi server: " + e.getMessage()));
-        }
+        User createdUser = userService.registerNewUser(registrationDto);
+        return ResponseEntity.status(HttpStatus.CREATED).body(createdUser);
     }
 }
