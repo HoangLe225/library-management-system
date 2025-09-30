@@ -21,6 +21,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
+@Transactional
 public class UserService {
 
     private final UserRepository userRepository;
@@ -35,8 +36,10 @@ public class UserService {
         this.userRoleRepository = userRoleRepository;
     }
 
-    public Optional<User> getUserById(Long id) {
-        return userRepository.findById(id);
+    @Transactional(readOnly = true)
+    public User getUserById(Long id) {
+        return userRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + id));
     }
 
     @Transactional(readOnly = true)
@@ -45,6 +48,7 @@ public class UserService {
                 .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
     }
 
+    @Transactional(readOnly = true)
     public List<Role> getRolesForUser(Long userId) {
         List<UserRole> userRoles = userRoleRepository.findByUserId(userId);
         return userRoles.stream()
@@ -52,7 +56,6 @@ public class UserService {
                 .collect(Collectors.toList());
     }
 
-    @Transactional
     public void deleteUser(Long userId) {
         if (!userRepository.existsById(userId)) {
             throw new ResourceNotFoundException("User không tồn tại với ID: " + userId);
@@ -65,7 +68,6 @@ public class UserService {
         userRepository.deleteById(userId);
     }
 
-    @Transactional
     public UserInfosDto updateUser(Long userId, UserUpdateRequestDto updateDTO) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User không tồn tại với ID: " + userId));
@@ -96,7 +98,6 @@ public class UserService {
         return new UserInfosDto(updatedUser, updateDTO.getRoles());
     }
 
-    @Transactional
     public User updateBasicUserInfo(String username, UserUpdateRequestDto updateDTO) {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User không tồn tại với username: " + username));
@@ -185,7 +186,7 @@ public class UserService {
         return savedUser;
     }
 
-    @Transactional(readOnly = true) // Đánh dấu chỉ đọc
+    @Transactional(readOnly = true)
     public List<UserInfosDto> getAllUsersWithRoles() {
         // 1. Lấy tất cả User
         List<User> users = userRepository.findAll();
@@ -203,6 +204,8 @@ public class UserService {
                 })
                 .collect(Collectors.toList());
     }
+
+    @Transactional(readOnly = true)
     public UserInfosDto getUserByIdWithRoles(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User không tồn tại với ID: " + userId));

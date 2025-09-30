@@ -71,10 +71,10 @@ public class SecurityConfigAPI {
 
                 // Cấu hình phân quyền cho các request
                 .authorizeHttpRequests(authorize -> authorize
-                        .requestMatchers("/login", "/logout", "/register", "/api/public/**").permitAll()
-                        .requestMatchers("/users/user-details").authenticated()
-                        .requestMatchers("/users/**").hasRole("ADMIN")
-                        .requestMatchers("/loans/**").hasAnyRole("MEMBER","ADMIN")
+                        .requestMatchers("/api/v1/auth/login", "/api/v1/auth/logout", "/api/v1/auth/register", "/api/public/**").permitAll()
+                        .requestMatchers("/api/v1/auth/users/user-details").authenticated()
+                        .requestMatchers("/api/v1/auth/users/**").hasRole("ADMIN")
+                        .requestMatchers("/api/v1/auth/loans/**").hasAnyRole("MEMBER","ADMIN")
                         // Yêu cầu xác thực cho tất cả các request còn lại
                         .anyRequest().authenticated()
                 )

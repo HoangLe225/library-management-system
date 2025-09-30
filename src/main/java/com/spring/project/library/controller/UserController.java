@@ -15,7 +15,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 @RestController
-@RequestMapping("/users")
+@RequestMapping("/api/v1/users")
 public class UserController {
 
     private final UserService userService;
@@ -52,41 +52,32 @@ public class UserController {
 //    }
 
     @GetMapping
-    public ResponseEntity<List<UserInfosDto>> getAllUsersWithRoles() {
-        List<UserInfosDto> usersWithRoles = userService.getAllUsersWithRoles();
-        return ResponseEntity.ok(usersWithRoles); // HTTP 200 OK
+    public List<UserInfosDto> getAllUsersWithRoles() {
+        return userService.getAllUsersWithRoles();
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<UserInfosDto> getUserByIdWithRoles(@PathVariable Long id) {
-        // Giả sử userService có phương thức getUserByIdWithRoles
-        UserInfosDto userDTO = userService.getUserByIdWithRoles(id);
-        return ResponseEntity.ok(userDTO);
+    public UserInfosDto getUserByIdWithRoles(@PathVariable Long id) {
+        return userService.getUserByIdWithRoles(id);
     }
 
     // PUT update user
     @PutMapping("/{id}")
-    public ResponseEntity<?> updateUser(@PathVariable Long id,
+    public UserInfosDto updateUser(@PathVariable Long id,
                                         @RequestBody UserUpdateRequestDto updateDTO) {
-        UserInfosDto userInfos = userService.updateUser(id, updateDTO);
-        return ResponseEntity.ok(userInfos);
+        return userService.updateUser(id, updateDTO);
     }
 
     // DELETE user
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteUser(@PathVariable Long id) {
+    public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
         userService.deleteUser(id);
         return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/{id}/roles")
-    public ResponseEntity<List<Role>> getRolesForUser(@PathVariable Long id) {
-        Optional<User> userOptional = userService.getUserById(id);
-        if (userOptional.isEmpty()) {
-            return ResponseEntity.notFound().build();
-        }
-        List<Role> roles = userService.getRolesForUser(id);
-        return ResponseEntity.ok(roles);
+    public List<Role> getRolesForUser(@PathVariable Long id) {
+        return userService.getRolesForUser(id);
     }
 
     /**
@@ -96,13 +87,12 @@ public class UserController {
      * @return UserInfosDto chứa ID, username và roles.
      */
     @GetMapping("/user-details")
-    public ResponseEntity<UserInfosDto> getUserDetails(Authentication authentication) {
+    public UserInfosDto getUserDetails(Authentication authentication) {
 
         // 1. Lấy username từ đối tượng đã xác thực
         String username = authentication.getName();
 
         // 2. Tìm đối tượng User đầy đủ từ Service
-        // Phương thức này sẽ ném ra UsernameNotFoundException nếu không tìm thấy (lý thuyết không xảy ra)
         User user = userService.findByUsername(username);
 
         // 3. Xây dựng DTO phản hồi (LoginResponseDto)
@@ -112,19 +102,12 @@ public class UserController {
                 .collect(Collectors.toList());
 
         // 3.2. Tạo đối tượng UserInfosDto
-        // Lưu ý: DTO của bạn dùng List<String> roles nên ta dùng toList() thay vì toSet()
-        UserInfosDto responseDto = new UserInfosDto(user, roles);
-
-        return ResponseEntity.ok(responseDto);
+        return new UserInfosDto(user, roles);
     }
 
     @PutMapping("/user-details")
-    public ResponseEntity<?> updateUserDetails(Authentication authentication, @RequestBody UserUpdateRequestDto updateDTO) {
+    public User updateUserDetails(Authentication authentication, @RequestBody UserUpdateRequestDto updateDTO) {
         String username = authentication.getName();
-
-        // Phương thức này BỎ QUA field 'roles' trong DTO.
-        User updatedUser = userService.updateBasicUserInfo(username, updateDTO);
-
-        return ResponseEntity.ok(updatedUser);
+        return userService.updateBasicUserInfo(username, updateDTO);
     }
 }

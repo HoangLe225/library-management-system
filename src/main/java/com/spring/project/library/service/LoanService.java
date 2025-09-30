@@ -1,8 +1,10 @@
 package com.spring.project.library.service;
 
-import com.spring.project.library.dto.LoanDetailsDto;
-import com.spring.project.library.dto.LoanRequestDto;
+import com.spring.project.library.dto.LoanDto.LoanResponseDto;
+import com.spring.project.library.dto.LoanDto.LoanCreationDto;
+import com.spring.project.library.dto.LoanDto.LoanUpdateDto;
 import com.spring.project.library.exception.ResourceNotFoundException;
+import com.spring.project.library.mapper.LoanMapper;
 import com.spring.project.library.model.Book;
 import com.spring.project.library.model.Loan;
 import com.spring.project.library.model.User;
@@ -22,16 +24,18 @@ public class LoanService {
     private final LoanRepository loanRepository;
     private final BookRepository bookRepository;
     private final UserRepository userRepository;
+    private final LoanMapper loanMapper;
 
-    public LoanService(LoanRepository loanRepository, BookRepository bookRepository, UserRepository userRepository) {
+    public LoanService(LoanRepository loanRepository, BookRepository bookRepository, UserRepository userRepository, LoanMapper loanMapper) {
         this.loanRepository = loanRepository;
         this.bookRepository = bookRepository;
         this.userRepository = userRepository;
+        this.loanMapper = loanMapper;
     }
 
     // --- 1. Cho mượn sách ---
     @Transactional
-    public Loan createNewLoan(Long userId, LoanRequestDto requestDto) {
+    public LoanResponseDto createNewLoan(Long userId, LoanCreationDto requestDto) {
         // 1. Tải User và Book
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User không tồn tại: " + userId));
@@ -56,19 +60,22 @@ public class LoanService {
         LocalDateTime loanDate = LocalDateTime.now();
         LocalDateTime dueDate = loanDate.plusDays(requestDto.getDurationDays());
 
-        Loan newLoan = new Loan();
+//        Loan newLoan = new Loan();
+        Loan newLoan = loanMapper.toEntity(requestDto);
         newLoan.setUser(user);
-        newLoan.setBook(book);
+//        newLoan.setBook(book);
         newLoan.setLoanDate(loanDate);
         newLoan.setDueDate(dueDate);
         newLoan.setStatus("LOANED");
 
-        return loanRepository.save(newLoan);
+        Loan savedLoan = loanRepository.save(newLoan);
+
+        return loanMapper.toResponseDto(savedLoan);
     }
 
     // --- 2. Trả sách ---
     @Transactional
-    public Loan returnLoan(Long loanId) {
+    public LoanResponseDto updateLoan(Long loanId, LoanUpdateDto dto) {
         Loan loan = loanRepository.findById(loanId)
                 .orElseThrow(() -> new ResourceNotFoundException("Loan ID không tồn tại: " + loanId));
 
@@ -77,8 +84,11 @@ public class LoanService {
         }
 
         // 1. Cập nhật trạng thái Loan
-        loan.setReturnDate(LocalDateTime.now());
-        loan.setStatus("RETURNED");
+        if ("RETURNED".equals(dto.getStatus())) {
+            // Chỉ gán ngày trả sách khi trạng thái là RETURNED
+            loan.setReturnDate(dto.getReturnDate() != null ? dto.getReturnDate() : LocalDateTime.now());
+        }
+        loan.setStatus(dto.getStatus());
         Loan returnedLoan = loanRepository.save(loan);
 
         // 2. Cập nhật số lượng sách
@@ -88,12 +98,12 @@ public class LoanService {
 
         // 3. Xử lý phạt (nếu returnDate > dueDate) - Tùy chọn
 
-        return returnedLoan;
+        return loanMapper.toResponseDto(returnedLoan);
     }
 
     // --- 3. Lấy danh sách Loan của người dùng ---
     @Transactional(readOnly = true)
-    public List<LoanDetailsDto> getLoansByUserId(Long userId) {
+    public List<LoanResponseDto> getLoansByUserId(Long userId) {
         // Cần phương thức tối ưu trong LoanRepository để tải Book và User
         // Ví dụ: List<Loan> findLoansByUserIdWithDetails(Long userId);
 
@@ -103,8 +113,9 @@ public class LoanService {
 
         // Hoặc, nếu bạn không muốn thay đổi Repository, bạn buộc phải
         // truy cập các thuộc tính Lazy trong Transaction:
-        return loans.stream()
-                .map(LoanDetailsDto::new) // Ánh xạ sang DTO
-                .collect(Collectors.toList());
+//        return loans.stream()
+//                .map(LoanResponseDto::new)
+//                .collect(Collectors.toList());
+        return loanMapper.toResponseDtoList(loans);
     }
 }

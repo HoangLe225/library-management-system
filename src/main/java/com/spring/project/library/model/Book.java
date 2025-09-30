@@ -1,11 +1,14 @@
 package com.spring.project.library.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Entity
 @Table(name = "books")
@@ -35,4 +38,8 @@ public class Book {
     @Column(name = "updated_at")
     @UpdateTimestamp
     private LocalDateTime updatedAt;
+    @OneToMany(mappedBy = "book", fetch = FetchType.LAZY)
+//    @ToString.Exclude
+//    @EqualsAndHashCode.Exclude
+    private List<Loan> loans;
 }

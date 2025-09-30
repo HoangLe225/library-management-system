@@ -1,7 +1,8 @@
 package com.spring.project.library.controller;
 
-import com.spring.project.library.dto.LoanDetailsDto;
-import com.spring.project.library.dto.LoanRequestDto;
+import com.spring.project.library.dto.LoanDto.LoanResponseDto;
+import com.spring.project.library.dto.LoanDto.LoanCreationDto;
+import com.spring.project.library.dto.LoanDto.LoanUpdateDto;
 import com.spring.project.library.model.Loan;
 import com.spring.project.library.service.LoanService;
 import com.spring.project.library.service.UserService;
@@ -14,7 +15,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/loans")
+@RequestMapping("/api/v1/loans")
 public class LoanController {
 
     private final LoanService loanService;
@@ -36,28 +37,23 @@ public class LoanController {
     // 🎯 Giả định: Frontend gửi cả userId và bookId trong request
 
     // POST: Tạo Loan mới (Cho mượn)
-    @PostMapping("/borrow")
-    // Yêu cầu quyền MEMBER hoặc ADMIN
-    public ResponseEntity<?> borrowBook(Authentication authentication, @Valid @RequestBody LoanRequestDto requestDto) {
+    @PostMapping
+    public ResponseEntity<LoanResponseDto> createLoan(Authentication authentication, @Valid @RequestBody LoanCreationDto requestDto) {
         Long userId = getCurrentUserId(authentication);
-        Loan loan = loanService.createNewLoan(userId, requestDto);
+        LoanResponseDto loan = loanService.createNewLoan(userId, requestDto);
         return ResponseEntity.status(HttpStatus.CREATED).body(loan);
     }
 
     // PUT: Trả sách
-    @PutMapping("/return/{loanId}")
-    // Yêu cầu quyền MEMBER hoặc ADMIN
-    public ResponseEntity<?> returnBook(@PathVariable Long loanId) {
-        Loan loan = loanService.returnLoan(loanId);
-        return ResponseEntity.ok(loan);
+    @PutMapping("/{loanId}/return")
+    public LoanResponseDto updateLoan(@PathVariable Long loanId, @RequestBody LoanUpdateDto dto) {
+        return loanService.updateLoan(loanId, dto);
     }
 
     // GET: Xem lịch sử mượn (chỉ cho người dùng hiện tại)
-    @GetMapping("/my-history")
-    public ResponseEntity<List<LoanDetailsDto>> getActiveLoansForUser(Authentication authentication) {
+    @GetMapping("/history")
+    public List<LoanResponseDto> getActiveLoansForUser(Authentication authentication) {
         Long userId = getCurrentUserId(authentication);
-
-        List<LoanDetailsDto> loans = loanService.getLoansByUserId(userId);
-        return ResponseEntity.ok(loans);
+        return loanService.getLoansByUserId(userId);
     }
 }

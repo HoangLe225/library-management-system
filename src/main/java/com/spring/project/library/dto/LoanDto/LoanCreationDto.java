@@ -1,11 +1,11 @@
-package com.spring.project.library.dto;
+package com.spring.project.library.dto.LoanDto;
 // LoanRequestDto.java
 
 import lombok.Data;
 import jakarta.validation.constraints.NotNull;
 
 @Data
-public class LoanRequestDto {
+public class LoanCreationDto {
     @NotNull(message = "Book ID is required")
     private Long bookId;
 

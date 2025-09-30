@@ -6,6 +6,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Set;
 
 @Entity
@@ -37,7 +38,9 @@ public class User {
     @UpdateTimestamp
     private LocalDateTime updatedAt;
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
-    @ToString.Exclude
-    @EqualsAndHashCode.Exclude
+//    @ToString.Exclude
+//    @EqualsAndHashCode.Exclude
     private Set<UserRole> userRoles;
+    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
+    private List<Loan> loans;
 }
