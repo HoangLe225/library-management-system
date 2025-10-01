@@ -1,9 +1,10 @@
 package com.spring.project.library.service;
 
-import com.spring.project.library.dto.UserInfosDto;
-import com.spring.project.library.dto.UserRegistrationDto;
-import com.spring.project.library.dto.UserUpdateRequestDto;
+import com.spring.project.library.dto.UserDto.UserCreationDto;
+import com.spring.project.library.dto.UserDto.UserResponseDto;
+import com.spring.project.library.dto.UserDto.UserUpdateDto;
 import com.spring.project.library.exception.ResourceNotFoundException;
+import com.spring.project.library.mapper.UserMapper;
 import com.spring.project.library.model.UserRole;
 import com.spring.project.library.exception.UserAlreadyExistsException;
 import com.spring.project.library.model.Role;
@@ -17,7 +18,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -28,24 +28,28 @@ public class UserService {
     private final UserRoleRepository userRoleRepository;
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
+    private final UserMapper userMapper;
     public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder,
-                       RoleRepository roleRepository, UserRoleRepository userRoleRepository) {
+                       RoleRepository roleRepository, UserRoleRepository userRoleRepository,
+                       UserMapper userMapper) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.roleRepository = roleRepository;
         this.userRoleRepository = userRoleRepository;
+        this.userMapper = userMapper;
     }
 
-    @Transactional(readOnly = true)
-    public User getUserById(Long id) {
-        return userRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + id));
-    }
+//    @Transactional(readOnly = true)
+//    public User getUserById(Long id) {
+//        return userRepository.findById(id)
+//                .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + id));
+//    }
 
     @Transactional(readOnly = true)
-    public User findByUsername(String username) {
-        return userRepository.findByUsername(username)
+    public UserResponseDto findByUsername(String username) {
+        User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
+        return convertUserToDto(user);
     }
 
     @Transactional(readOnly = true)
@@ -68,11 +72,12 @@ public class UserService {
         userRepository.deleteById(userId);
     }
 
-    public UserInfosDto updateUser(Long userId, UserUpdateRequestDto updateDTO) {
+    @Transactional
+    public UserResponseDto updateUser(Long userId, UserUpdateDto updateDTO) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User không tồn tại với ID: " + userId));
 
-        User updatedUser = updateBaseUserInfo(user, updateDTO);
+        UserResponseDto updatedUser = updateBaseUserInfo(user, updateDTO);
 
         // CẬP NHẬT ROLE (Chỉ chạy nếu có dữ liệu role được gửi lên)
         if (updateDTO.getRoles() != null) {
@@ -95,17 +100,19 @@ public class UserService {
             }
         }
 
-        return new UserInfosDto(updatedUser, updateDTO.getRoles());
+        return updatedUser;
     }
 
-    public User updateBasicUserInfo(String username, UserUpdateRequestDto updateDTO) {
+    @Transactional
+    public UserResponseDto updateBasicUserInfo(String username, UserUpdateDto updateDTO) {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User không tồn tại với username: " + username));
 
         return updateBaseUserInfo(user, updateDTO);
     }
 
-    private User updateBaseUserInfo(User user, UserUpdateRequestDto updateDTO) {
+    @Transactional
+    private UserResponseDto updateBaseUserInfo(User user, UserUpdateDto updateDTO) {
         Long userId = user.getId();
 
         // 1. KIỂM TRA TÍNH DUY NHẤT VÀ CẬP NHẬT EMAIL
@@ -136,10 +143,26 @@ public class UserService {
         }
 
         // Lưu User Entity đã cập nhật
-        return userRepository.save(user);
+        User savedUser =  userRepository.save(user);
+
+        return convertUserToDto(savedUser);
     }
 
-    public User registerNewUser(UserRegistrationDto registrationDto) {
+    public UserResponseDto convertUserToDto(User user) {
+        // Sử dụng logic lấy Roles từ UserRoleRepository
+        List<String> roleNames = userRoleRepository.findByUserId(user.getId())
+                .stream()
+                .map(userRole -> userRole.getRole().getName())
+                .collect(Collectors.toList());
+
+        UserResponseDto userResponseDto = userMapper.toResponseDto(user);
+        userResponseDto.setRoles(roleNames);
+
+        return userResponseDto;
+    }
+
+    @Transactional
+    public UserResponseDto registerNewUser(UserCreationDto registrationDto) {
         // 1. Kiểm tra xem người dùng đã tồn tại chưa
         if (userRepository.findByUsername(registrationDto.getUsername()).isPresent()) {
             throw new UserAlreadyExistsException("Username is already taken: " + registrationDto.getUsername());
@@ -149,12 +172,7 @@ public class UserService {
         }
 
         // 2. Ánh xạ DTO sang Entity User
-        User user = new User();
-        user.setUsername(registrationDto.getUsername());
-        user.setFullName(registrationDto.getFullName());
-        user.setEmail(registrationDto.getEmail());
-        user.setPhone(registrationDto.getPhone());
-        user.setPassword(registrationDto.getPassword());
+        User user = userMapper.toEntity(registrationDto);
 //        user.setPassword(passwordEncoder.encode(registrationDto.getPassword()));
         user.setEnabled(true); // Kích hoạt tài khoản mặc định
 
@@ -183,39 +201,27 @@ public class UserService {
             userRoleRepository.save(userRole);
         }
 
-        return savedUser;
+        return convertUserToDto(savedUser);
     }
 
     @Transactional(readOnly = true)
-    public List<UserInfosDto> getAllUsersWithRoles() {
+    public List<UserResponseDto> getAllUsersWithRoles() {
         // 1. Lấy tất cả User
         List<User> users = userRepository.findAll();
 
         // 2. Chuyển đổi sang DTO và gán Roles
-        return users.stream()
-                .map(user -> {
-                    // Tái sử dụng logic lấy Roles từ UserRoleRepository
-                    List<String> roleNames = userRoleRepository.findByUserId(user.getId())
-                            .stream()
-                            .map(userRole -> userRole.getRole().getName())
-                            .collect(Collectors.toList());
 
-                    return new UserInfosDto(user, roleNames);
-                })
+        return users.stream()
+                .map(this::convertUserToDto)
                 .collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
-    public UserInfosDto getUserByIdWithRoles(Long userId) {
+    public UserResponseDto getUserByIdWithRoles(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User không tồn tại với ID: " + userId));
 
         // Lấy roles giống như trong getAllUsersWithRoles()
-        List<String> roleNames = userRoleRepository.findByUserId(user.getId())
-                .stream()
-                .map(userRole -> userRole.getRole().getName())
-                .collect(Collectors.toList());
-
-        return new UserInfosDto(user, roleNames);
+        return convertUserToDto(user);
     }
 }

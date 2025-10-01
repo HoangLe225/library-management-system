@@ -1,4 +1,4 @@
-package com.spring.project.library.dto;
+package com.spring.project.library.dto.UserDto;
 
 import jakarta.validation.constraints.*;
 import lombok.Data;
@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Data
-public class UserRegistrationDto {
+public class UserCreationDto {
     @NotBlank(message = "Username cannot be blank")
     private String username;
 

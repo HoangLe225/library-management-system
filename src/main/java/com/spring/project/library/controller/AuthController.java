@@ -1,9 +1,9 @@
 package com.spring.project.library.controller;
 
 import com.spring.project.library.dto.LoginDto;
-import com.spring.project.library.dto.UserRegistrationDto;
+import com.spring.project.library.dto.UserDto.UserResponseDto;
+import com.spring.project.library.dto.UserDto.UserCreationDto;
 import com.spring.project.library.dto.UserStatusResponse;
-import com.spring.project.library.model.User;
 import com.spring.project.library.service.UserService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -61,8 +61,8 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<?> createUser(@Valid @RequestBody UserRegistrationDto registrationDto) {
-        User createdUser = userService.registerNewUser(registrationDto);
+    public ResponseEntity<UserResponseDto> createUser(@Valid @RequestBody UserCreationDto registrationDto) {
+        UserResponseDto createdUser = userService.registerNewUser(registrationDto);
         return ResponseEntity.status(HttpStatus.CREATED).body(createdUser);
     }
 

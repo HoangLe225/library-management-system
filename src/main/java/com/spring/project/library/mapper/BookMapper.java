@@ -16,6 +16,7 @@ public abstract class BookMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
+    @Mapping(target = "loans", ignore = true)
     public abstract Book toEntity(BookCreationDto dto);
     public abstract void updateEntityFromDto(BookUpdateDto dto, @MappingTarget Book entity);
     public abstract BookResponseDto toResponseDto(Book entity);

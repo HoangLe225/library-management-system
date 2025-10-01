@@ -1,18 +1,14 @@
 package com.spring.project.library.controller;
 
-import com.spring.project.library.dto.UserInfosDto;
-import com.spring.project.library.dto.UserUpdateRequestDto;
+import com.spring.project.library.dto.UserDto.UserResponseDto;
+import com.spring.project.library.dto.UserDto.UserUpdateDto;
 import com.spring.project.library.model.Role;
-import com.spring.project.library.model.User;
 import com.spring.project.library.service.UserService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/v1/users")
@@ -52,19 +48,19 @@ public class UserController {
 //    }
 
     @GetMapping
-    public List<UserInfosDto> getAllUsersWithRoles() {
+    public List<UserResponseDto> getAllUsersWithRoles() {
         return userService.getAllUsersWithRoles();
     }
 
     @GetMapping("/{id}")
-    public UserInfosDto getUserByIdWithRoles(@PathVariable Long id) {
+    public UserResponseDto getUserByIdWithRoles(@PathVariable Long id) {
         return userService.getUserByIdWithRoles(id);
     }
 
     // PUT update user
     @PutMapping("/{id}")
-    public UserInfosDto updateUser(@PathVariable Long id,
-                                        @RequestBody UserUpdateRequestDto updateDTO) {
+    public UserResponseDto updateUser(@PathVariable Long id,
+                                      @RequestBody UserUpdateDto updateDTO) {
         return userService.updateUser(id, updateDTO);
     }
 
@@ -87,26 +83,15 @@ public class UserController {
      * @return UserInfosDto chứa ID, username và roles.
      */
     @GetMapping("/user-details")
-    public UserInfosDto getUserDetails(Authentication authentication) {
-
+    public UserResponseDto getUserDetails(Authentication authentication) {
         // 1. Lấy username từ đối tượng đã xác thực
         String username = authentication.getName();
-
         // 2. Tìm đối tượng User đầy đủ từ Service
-        User user = userService.findByUsername(username);
-
-        // 3. Xây dựng DTO phản hồi (LoginResponseDto)
-        // 3.1. Ánh xạ Roles
-        List<String> roles = user.getUserRoles().stream() // Giả sử user.getUserRoles() đã hoạt động
-                .map(ur -> ur.getRole().getName())
-                .collect(Collectors.toList());
-
-        // 3.2. Tạo đối tượng UserInfosDto
-        return new UserInfosDto(user, roles);
+        return userService.findByUsername(username);
     }
 
     @PutMapping("/user-details")
-    public User updateUserDetails(Authentication authentication, @RequestBody UserUpdateRequestDto updateDTO) {
+    public UserResponseDto updateUserDetails(Authentication authentication, @RequestBody UserUpdateDto updateDTO) {
         String username = authentication.getName();
         return userService.updateBasicUserInfo(username, updateDTO);
     }

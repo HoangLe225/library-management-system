@@ -56,13 +56,7 @@ public class BookService {
         Book book = bookRepository.findById(bookId)
                 .orElseThrow(() -> new ResourceNotFoundException("Book not found with ID: " + bookId));
 
-        // 1. Cập nhật các trường thông tin cơ bản
-//        book.setIsbn(bookDto.getIsbn());
-//        book.setTitle(bookDto.getTitle());
-//        book.setAuthor(bookDto.getAuthor());
-//        book.setYear(bookDto.getYear());
-
-        // 2. Xử lý logic TotalCopies/AvailableCopies
+        // Xử lý logic TotalCopies/AvailableCopies
         int oldTotal = book.getTotalCopies();
         int newTotal = bookDto.getTotalCopies();
 
@@ -74,10 +68,8 @@ public class BookService {
             throw new IllegalArgumentException("Total copies cannot be less than loaned copies (" + loanedCopies + ").");
         }
 
+        // Cập nhật các trường thông tin cơ bản
         bookMapper.updateEntityFromDto(bookDto, book);
-
-        // Cập nhật tổng số lượng
-//        book.setTotalCopies(newTotal);
 
         // Tính toán lại số lượng có sẵn
         book.setAvailableCopies(newTotal - loanedCopies);
