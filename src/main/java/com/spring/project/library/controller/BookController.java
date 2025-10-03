@@ -5,6 +5,7 @@ import com.spring.project.library.dto.BookDto.BookResponseDto;
 import com.spring.project.library.dto.BookDto.BookUpdateDto;
 import com.spring.project.library.model.Book;
 import com.spring.project.library.service.BookService;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -41,14 +42,14 @@ public class BookController {
 
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<BookResponseDto> createBook(@RequestBody BookCreationDto bookDto) {
+    public ResponseEntity<BookResponseDto> createBook(@Valid @RequestBody BookCreationDto bookDto) {
         BookResponseDto newBook = bookService.saveBook(bookDto);
         return ResponseEntity.status(HttpStatus.CREATED).body(newBook);
     }
 
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public BookResponseDto updateBook(@PathVariable Long id, @RequestBody BookUpdateDto bookDto) {
+    public BookResponseDto updateBook(@PathVariable Long id, @Valid @RequestBody BookUpdateDto bookDto) {
         return bookService.updateBook(id, bookDto);
     }
 

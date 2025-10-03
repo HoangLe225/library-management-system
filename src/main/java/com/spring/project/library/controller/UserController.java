@@ -4,6 +4,7 @@ import com.spring.project.library.dto.UserDto.UserResponseDto;
 import com.spring.project.library.dto.UserDto.UserUpdateDto;
 import com.spring.project.library.model.Role;
 import com.spring.project.library.service.UserService;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -60,7 +61,7 @@ public class UserController {
     // PUT update user
     @PutMapping("/{id}")
     public UserResponseDto updateUser(@PathVariable Long id,
-                                      @RequestBody UserUpdateDto updateDTO) {
+                                      @Valid @RequestBody UserUpdateDto updateDTO) {
         return userService.updateUser(id, updateDTO);
     }
 
@@ -91,7 +92,7 @@ public class UserController {
     }
 
     @PutMapping("/user-details")
-    public UserResponseDto updateUserDetails(Authentication authentication, @RequestBody UserUpdateDto updateDTO) {
+    public UserResponseDto updateUserDetails(Authentication authentication, @Valid @RequestBody UserUpdateDto updateDTO) {
         String username = authentication.getName();
         return userService.updateBasicUserInfo(username, updateDTO);
     }
