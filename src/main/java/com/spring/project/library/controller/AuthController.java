@@ -1,5 +1,8 @@
 package com.spring.project.library.controller;
 
+import com.spring.project.library.config.jwt.JwtTokenProvider;
+import com.spring.project.library.config.jwt.UserDetailsImpl;
+import com.spring.project.library.dto.JwtResponse;
 import com.spring.project.library.dto.LoginDto;
 import com.spring.project.library.dto.UserDto.UserResponseDto;
 import com.spring.project.library.dto.UserDto.UserCreationDto;
@@ -28,37 +31,70 @@ public class AuthController {
     // Tiêm AuthenticationManager vào Controller
     private final AuthenticationManager authenticationManager;
     private final UserService userService;
+    private final JwtTokenProvider tokenProvider;
 
-    public AuthController(AuthenticationManager authenticationManager, UserService userService) {
+    public AuthController(AuthenticationManager authenticationManager, UserService userService, JwtTokenProvider tokenProvider) {
         this.authenticationManager = authenticationManager;
         this.userService = userService;
+        this.tokenProvider = tokenProvider;
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> authenticateUser(@RequestBody LoginDto loginRequest) {
-        // 1. Thực hiện xác thực
-        Authentication authenticationToken =
-                new UsernamePasswordAuthenticationToken(loginRequest.getUsername(), loginRequest.getPassword());
+    public ResponseEntity<?> authenticateUser(@Valid @RequestBody LoginDto loginRequest) {
+        // 1. Thực hiện xác thực bằng Username/Password
+        Authentication authentication = authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(loginRequest.getUsername(), loginRequest.getPassword()));
 
-        Authentication authentication = authenticationManager.authenticate(authenticationToken);
+        // **(Tùy chọn)** Lưu Authentication vào Context. Thường không cần thiết cho luồng JWT
+        // SecurityContextHolder.getContext().setAuthentication(authentication);
 
-        // 2. Lấy UserDetails và Vai trò (Roles)
-        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+        // 2. Lấy UserDetailsImpl và tạo TOKEN
+        // Phải cast sang UserDetailsImpl để lấy ID/Email (những trường không có trong UserDetails mặc định)
+        UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
 
-        // Ánh xạ GrantedAuthority sang List<String>
+        // Tạo JWT Token
+        String jwt = tokenProvider.generateToken(userDetails); // <--- Dùng Provider để tạo Token
+
+        // 3. Lấy Roles để trả về Client
         List<String> roles = userDetails.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
                 .collect(Collectors.toList());
 
-        // 2. Xác thực thành công: Trả về 200 OK với JSON body
-        // Frontend của bạn mong đợi một JSON body, kể cả khi không có token.
-        UserStatusResponse userStatusResponse = new UserStatusResponse("SUCCESS", "Đăng nhập thành công.", roles);
-
-        // Bạn có thể dùng Http Session ở đây nếu cần, nhưng thường REST API là STATELESS
-        // SecurityContextHolder.getContext().setAuthentication(authentication);
-
-        return ResponseEntity.ok(userStatusResponse);
+        // 4. Trả về JWT Response
+        return ResponseEntity.ok(new JwtResponse(
+                jwt,
+                userDetails.getId(),
+                userDetails.getUsername(),
+                userDetails.getEmail(),
+                roles
+        ));
     }
+
+//    @PostMapping("/login")
+//    public ResponseEntity<?> authenticateUser(@RequestBody LoginDto loginRequest) {
+//        // 1. Thực hiện xác thực
+//        Authentication authenticationToken =
+//                new UsernamePasswordAuthenticationToken(loginRequest.getUsername(), loginRequest.getPassword());
+//
+//        Authentication authentication = authenticationManager.authenticate(authenticationToken);
+//
+//        // 2. Lấy UserDetails và Vai trò (Roles)
+//        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+//
+//        // Ánh xạ GrantedAuthority sang List<String>
+//        List<String> roles = userDetails.getAuthorities().stream()
+//                .map(GrantedAuthority::getAuthority)
+//                .collect(Collectors.toList());
+//
+//        // 2. Xác thực thành công: Trả về 200 OK với JSON body
+//        // Frontend của bạn mong đợi một JSON body, kể cả khi không có token.
+//        UserStatusResponse userStatusResponse = new UserStatusResponse("SUCCESS", "Đăng nhập thành công.", roles);
+//
+//        // Bạn có thể dùng Http Session ở đây nếu cần, nhưng thường REST API là STATELESS
+//        // SecurityContextHolder.getContext().setAuthentication(authentication);
+//
+//        return ResponseEntity.ok(userStatusResponse);
+//    }
 
     @PostMapping("/register")
     public ResponseEntity<UserResponseDto> createUser(@Valid @RequestBody UserCreationDto registrationDto) {
