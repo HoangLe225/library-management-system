@@ -1,6 +1,6 @@
 # 📚 Library Management REST API
 
-A simple **Library Management System** built with **Spring Boot**. The system provides REST API endpoints to manage **books**, **patrons** (members), and **loan records** (borrowing transactions).
+A simple **Library Management System** built with **Spring Boot**. The system provides REST API endpoints to manage **books**, **members** (patrons), and **loans** (borrowing transactions).
 
 [![Ngôn ngữ](https://img.shields.io/github/languages/top/hoangle225/library-management-system)](link-to-repo)
 [![Giấy phép](https://img.shields.io/github/license/hoangle225/library-management-system)](LICENSE)
@@ -39,7 +39,7 @@ spring.jpa.hibernate.ddl-auto=update # Hibernate will automatically create the n
 This section guides you on how to compile and run the application.
 1.  **Clone Repository:**
     ```bash
-    git clone [https://github.com/hoangle225/library-management-system.git](https://github.com/hoangle225/library-management-system.git)
+    git clone https://github.com/hoangle225/library-management-system.git
     cd library-management-system
     ```
 
@@ -63,14 +63,14 @@ Once the application is running, you can access the documentation at:
 
 **[http://localhost:8080/my-ui.html](http://localhost:8080/my-ui.html)**
 
-### 🔒 Authentication
+## 🔒 Authentication
 
 The application uses **JWT (JSON Web Tokens)** for securing endpoints.
 
 **Registration/Login:**
 * **POST** `/api/v1/auth/register`
 * **POST** `/api/v1/auth/login`
-* **Lưu ý:** The `endpoint` will return a **JWT Token**. You must include this token in the `Authorization: Bearer <token>` header for all other secured requests.
+* **Note:** The `endpoint` will return a **JWT Token**. You must include this token in the `Authorization: Bearer <token>` header for all other secured requests.
 
 ### 📖 Secured API Examples
 
